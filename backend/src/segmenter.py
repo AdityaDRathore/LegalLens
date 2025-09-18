@@ -146,7 +146,7 @@ class UniversalClauseSegmenter:
             return True
 
         # Check if text is just numbers (page numbers)
-        if re.match(r'^\d+, text.strip()):
+        if re.match(r'^\d+$', text.strip()):
             return True
 
         return False
