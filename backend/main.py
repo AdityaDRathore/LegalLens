@@ -1,13 +1,17 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import json
 from pathlib import Path
-from src.pipeline import ClarityCounselPipeline
-from src.models import DocumentAnalysisRequest, DocumentAnalysisResponse
-import tempfile
 import os
 import uuid
+import tempfile
+import uvicorn
+from dotenv import load_dotenv
+
+from src.pipeline import ClarityCounselPipeline
+from src.models import DocumentAnalysisRequest, DocumentAnalysisResponse
+
+load_dotenv()  # Load environment variables from .env file
 
 app = FastAPI(
     title="Clarity Counsel AI - Universal Legal Analysis",
@@ -142,6 +146,4 @@ async def cleanup_temp_file(file_path: str):
 
 
 if __name__ == "__main__":
-    import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000)

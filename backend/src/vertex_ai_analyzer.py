@@ -1,5 +1,4 @@
-import vertexai
-from vertexai.language_models import TextGenerationModel
+import requests
 import json
 from typing import Dict, List, Any
 import os
@@ -7,18 +6,17 @@ from datetime import datetime
 
 
 class VertexAIAnalyzer:
-    """Uses Vertex AI to analyze legal clauses and provide intelligent insights."""
+    """Uses a hosted LLM to analyze legal clauses and provide intelligent insights."""
 
     def __init__(self):
-        # Initialize Vertex AI
-        project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
-        location = os.getenv('VERTEX_AI_LOCATION', 'us-central1')
+        # Load Hugging Face configuration
+        self.api_token = os.getenv('HF_API_TOKEN')
+        model_id = os.getenv('HF_MODEL_ID', 'mistralai/Mistral-7B-Instruct-v0.2')
+        self.api_url = f"https://api-inference.huggingface.co/models/{model_id}"
+        self.headers = {"Authorization": f"Bearer {self.api_token}"}
 
-        vertexai.init(project=project_id, location=location)
-
-        # Load the text generation model
-        model_name = os.getenv('VERTEX_AI_MODEL', 'text-bison@002')
-        self.model = TextGenerationModel.from_pretrained(model_name)
+        if not self.api_token:
+            raise ValueError("HF_API_TOKEN environment variable not set.")
 
         # Analysis prompts for different use cases
         self.analysis_prompts = {
@@ -33,39 +31,41 @@ class VertexAIAnalyzer:
             document_type: str,
             analysis_depth: str = 'comprehensive'
     ) -> Dict[str, Any]:
-        """Analyze document clauses using Vertex AI."""
-
-        # Prepare the prompt
+        """Analyze document clauses using a hosted LLM."""
         prompt = self._build_analysis_prompt(clauses, document_type, analysis_depth)
 
-        try:
-            # Generate analysis using Vertex AI
-            response = self.model.predict(
-                prompt=prompt,
-                max_output_tokens=2048,
-                temperature=0.1,  # Low temperature for consistent analysis
-                top_p=0.8,
-                top_k=40
-            )
+        payload = {
+            "inputs": prompt,
+            "parameters": {
+                "max_new_tokens": 2048,
+                "temperature": 0.2,
+                "top_p": 0.9,
+                "return_full_text": False,
+            }
+        }
 
-            # Parse the response
-            analysis_result = self._parse_ai_response(response.text, clauses)
+        try:
+            response = requests.post(self.api_url, headers=self.headers, json=payload, timeout=120)
+            response.raise_for_status()
+            
+            generated_text = response.json()[0]['generated_text']
+            analysis_result = self._parse_ai_response(generated_text, clauses)
 
             return analysis_result
 
         except Exception as e:
-            print(f"Vertex AI analysis failed: {e}")
+            print(f"LLM analysis failed: {e}")
             # Fallback to basic rule-based analysis
             return self._fallback_analysis(clauses, document_type)
 
     def _build_analysis_prompt(self, clauses: List[str], document_type: str, analysis_depth: str) -> str:
-        """Build the prompt for Vertex AI analysis."""
-
+        """Build the prompt for LLM analysis."""
         base_prompt = self.analysis_prompts[analysis_depth]
-
         clauses_text = "\n".join([f"CLAUSE_{i + 1}: {clause}" for i, clause in enumerate(clauses)])
 
+        # Using instruction-following format for models like Mistral
         prompt = f"""
+[INST]
 {base_prompt}
 
 DOCUMENT TYPE: {document_type}
@@ -73,7 +73,7 @@ DOCUMENT TYPE: {document_type}
 CLAUSES TO ANALYZE:
 {clauses_text}
 
-Provide your analysis in the following JSON format:
+Provide your analysis *only* in the following JSON format. Do not add any text before or after the JSON object.
 {{
     "document_summary": {{
         "document_type": "detected document type",
@@ -93,10 +93,8 @@ Provide your analysis in the following JSON format:
         }}
     ]
 }}
-
-ANALYSIS:
+[/INST]
 """
-
         return prompt
 
     def _get_comprehensive_prompt(self) -> str:
@@ -258,7 +256,7 @@ Provide thorough analysis suitable for legal professionals.
         return {
             'document_summary': {
                 'document_type': document_type,
-                'overall_risk_score': sum(c['risk_score'] for c in clause_analyses) / len(clause_analyses),
+                'overall_risk_score': sum(c['risk_score'] for c in clause_analyses) / len(clause_analyses) if clause_analyses else 0,
                 'key_concerns': ['Automated analysis only - professional review recommended'],
                 'document_category': 'Legal Document'
             },
