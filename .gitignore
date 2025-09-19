@@ -1,5 +1,6 @@
 .venv/
 
+
 # Python artifacts
 __pycache__/
 *.pyc
@@ -8,9 +9,9 @@ __pycache__/
 *.egg-info/
 pip-wheel-metadata/
 
-# # Environment variables
-# .env
-# backend/.env
+# Environment variables
+.env
+backend/.env
 
 # Build and distribution
 build/
