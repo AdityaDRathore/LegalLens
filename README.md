@@ -1,6 +1,6 @@
 # 📜 LegalLens – Backend
 
-Clarity Counsel AI is a backend service that analyzes **Indian legal documents** (PDF, DOCX, or plain text) and produces a **clause-by-clause JSON output** highlighting the severity of each clause:
+Legal Lens is a backend service that analyzes **Indian legal documents** (PDF, DOCX, or plain text) and produces a **clause-by-clause JSON output** highlighting the severity of each clause:
 
 * 🔴 **High Risk** → strong obligations, penalties, or one-sided terms
 * 🟡 **Caution** → vague, unusual, or needs clarification
