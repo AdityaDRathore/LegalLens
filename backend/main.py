@@ -14,7 +14,7 @@ from src.models import DocumentAnalysisRequest, DocumentAnalysisResponse
 load_dotenv()  # Load environment variables from .env file
 
 app = FastAPI(
-    title="Clarity Counsel AI - Universal Legal Analysis",
+    title="Legal Lens - Universal Legal Analysis",
     description="AI-powered legal document analysis for all document types using Vertex AI",
     version="2.0.0"
 )
@@ -119,7 +119,7 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "service": "Clarity Counsel AI v2.0",
+        "service": "Legal Lens v2.0",
         "ai_backend": "Google Vertex AI"
     }
 
